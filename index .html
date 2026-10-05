@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <title>МЕКТЕП-ТАЛДАУ — Автоматты Аналитикалық Жүйе</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background: #f4f7f6; color: #333; }
+        .container { max-width: 1000px; margin: auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1, h2 { text-align: center; color: #1a5276; margin-bottom: 5px; }
+        .header-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; background: #ebf5fb; padding: 15px; border-radius: 8px; }
+        label { font-weight: bold; font-size: 14px; }
+        input, textarea, select { width: 100%; padding: 8px; margin-top: 4px; border: 1fr solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #d5dbdb; padding: 10px; text-align: center; font-size: 13px; }
+        th { background-color: #2980b9; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-right: 5px; color: #fff; }
+        .btn-add { background: #27ae60; }
+        .btn-del { background: #c0392b; }
+        .btn-print { background: #8e44ad; padding: 12px 25px; font-size: 16px; margin-top: 20px; width: 100%; }
+        .chart-box { width: 100%; height: 320px; margin: 25px 0; }
+        .analysis-sec { margin-top: 20px; background: #fcf3cf; padding: 15px; border-left: 5px solid #f39c12; border-radius: 4px; }
+        .footer-sec { margin-top: 40px; display: flex; justify-content: space-between; align-items: center; }
+
+        @media print {
+            .no-print, button, .btn { display: none !important; }
+            body { background: white; margin: 0; }
+            .container { box-shadow: none; padding: 0; width: 100%; }
+            .chart-box { height: 280px !important; page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>«МЕКТЕП-ТАЛДАУ»</h1>
+    <h2>Төқсандық / Жылдық Аналитикалық Есеп</h2>
+
+    <div class="header-inputs">
+        <div>
+            <label>Мектептің аты:</label>
+            <input type="text" id="schoolName" value="№135 Жалпы білім беретін мектеп" oninput="renderReport()">
+        </div>
+        <div>
+            <label>Пән мен Мұғалімнің аты-жөні:</label>
+            <input type="text" id="teacherName" value="Ахметова А.Б. (Математика)" oninput="renderReport()">
+        </div>
+    </div>
+
+    <div class="no-print" style="margin-bottom: 15px;">
+        <button class="btn btn-add" onclick="addClassRow()">+ Сынып қосу</button>
+    </div>
+
+    <table id="dataTable">
+        <thead>
+            <tr>
+                <th>Сынып</th>
+                <th>Қатысқан оқушы</th>
+                <th>«5»</th>
+                <th>«4»</th>
+                <th>«3»</th>
+                <th>«2»</th>
+                <th>Орта балл</th>
+                <th>Білім сапасы (%)</th>
+                <th class="no-print">Әрекет</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <!-- Деректер динамикалы енгізіледі -->
+        </tbody>
+    </table>
+
+    <div class="chart-box">
+        <canvas id="classChart"></canvas>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+        <div>
+            <label>Меңгерілген тапсырмалар:</label>
+            <textarea rows="3">Формулаларды қолдану, негізгі ұғымдарды анықтау, стандартты есептерді шығару.</textarea>
+        </div>
+        <div>
+            <label>Қиындық тудырған тапсырмалар:</label>
+            <textarea rows="3">Күрделі теңдеулерді шешу, логикалық мәтіндік есептер, сызбамен жұмыс.</textarea>
+        </div>
+        <div>
+            <label>Білім алушыларға туындаған қиындықтар тізбесі:</label>
+            <textarea rows="3">Мәтіндік шарттарды талдаудағы сауаттылық, есептеу жылдамдығының төмендігі.</textarea>
+        </div>
+        <div>
+            <label>Тапсырмалардағы қиындықтардың себептері:</label>
+            <textarea rows="3">Өткен тақырыптардағы олқылықтар, формулаларды жатқа білмеу, зейіннің шашыраңқылығы.</textarea>
+        </div>
+    </div>
+
+    <div style="margin-top: 15px;">
+        <label>Жоспарланған түзету жұмысы:</label>
+        <textarea rows="2">Әр оқушымен жеке консультациялар өткізу, қиын тақырыптар бойынша қосымша тапсырмалар беру.</textarea>
+    </div>
+
+    <div class="analysis-sec">
+        <h3>Автоматты Қорытынды Талдау</h3>
+        <p id="autoSummary">Деректерді енгізіңіз...</p>
+    </div>
+
+    <div class="footer-sec">
+        <div>
+            <p><strong>Пән мұғалімі:</strong> <span id="lblTeacher"></span></p>
+            <p><strong>Қолы:</strong> ______________</p>
+        </div>
+        <div>
+            <p><strong>Күні, айы, жылы:</strong> <input type="text" value="05.10.2026" style="width: 120px; text-align: center;"></p>
+        </div>
+    </div>
+
+    <button class="btn btn-print no-print" onclick="window.print()">🖨️ Принтерге шығару / PDF етіп сақтау</button>
+</div>
+
+<script>
+let classes = [
+    { name: "1А", count: 24, g5: 10, g4: 10, g3: 4, g2: 0 },
+    { name: "1Ә", count: 22, g5: 8, g4: 9, g3: 5, g2: 0 },
+    { name: "1Б", count: 20, g5: 5, g4: 8, g3: 7, g2: 0 }
+];
+
+let myChart = null;
+
+function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+
+    classes.forEach((c, idx) => {
+        let total = c.g5 + c.g4 + c.g3 + c.g2;
+        let avg = total > 0 ? ((c.g5*5 + c.g4*4 + c.g3*3 + c.g2*2) / total).toFixed(2) : 0;
+        let quality = total > 0 ? (((c.g5 + c.g4) / total) * 100).toFixed(1) : 0;
+
+        tbody.innerHTML += `
+            <tr>
+                <td><input type="text" value="${c.name}" onchange="updateData(${idx}, 'name', this.value)"></td>
+                <td><input type="number" value="${c.count}" onchange="updateData(${idx}, 'count', +this.value)"></td>
+                <td><input type="number" value="${c.g5}" onchange="updateData(${idx}, 'g5', +this.value)"></td>
+                <td><input type="number" value="${c.g4}" onchange="updateData(${idx}, 'g4', +this.value)"></td>
+                <td><input type="number" value="${c.g3}" onchange="updateData(${idx}, 'g3', +this.value)"></td>
+                <td><input type="number" value="${c.g2}" onchange="updateData(${idx}, 'g2', +this.value)"></td>
+                <td><strong>${avg}</strong></td>
+                <td><strong>${quality}%</strong></td>
+                <td class="no-print"><button class="btn btn-del" onclick="deleteClass(${idx})">Өшіру</button></td>
+            </tr>
+        `;
+    });
+    renderReport();
+}
+
+function updateData(index, field, value) {
+    classes[index][field] = value;
+    renderTable();
+}
+
+function addClassRow() {
+    classes.push({ name: `${classes.length + 1}А`, count: 20, g5: 5, g4: 10, g3: 5, g2: 0 });
+    renderTable();
+}
+
+function deleteClass(index) {
+    classes.splice(index, 1);
+    renderTable();
+}
+
+function renderReport() {
+    document.getElementById('lblTeacher').innerText = document.getElementById('teacherName').value;
+
+    let totalStudents = 0, totalScoreSum = 0, totalCountForAvg = 0;
+    let highestClass = { name: '', avg: -1 }, lowestClass = { name: '', avg: 999 };
+
+    let chartLabels = [], chartAvgs = [], chartQualities = [];
+
+    classes.forEach(c => {
+        let total = c.g5 + c.g4 + c.g3 + c.g2;
+        let avg = total > 0 ? parseFloat(((c.g5*5 + c.g4*4 + c.g3*3 + c.g2*2) / total).toFixed(2)) : 0;
+        let quality = total > 0 ? parseFloat((((c.g5 + c.g4) / total) * 100).toFixed(1)) : 0;
+
+        totalStudents += c.count;
+        totalScoreSum += (c.g5*5 + c.g4*4 + c.g3*3 + c.g2*2);
+        totalCountForAvg += total;
+
+        if (avg > highestClass.avg) highestClass = { name: c.name, avg: avg, quality: quality };
+        if (avg < lowestClass.avg && total > 0) lowestClass = { name: c.name, avg: avg, quality: quality };
+
+        chartLabels.push(c.name);
+        chartAvgs.push(avg);
+        chartQualities.push(quality);
+    });
+
+    let overallAvg = totalCountForAvg > 0 ? (totalScoreSum / totalCountForAvg).toFixed(2) : 0;
+
+    let summaryText = `«МЕКТЕП-ТАЛДАУ» нәтижесі бойынша жалпы қатысқан оқушылар саны: <strong>${totalStudents}</strong>. Жалпы ортақ балл: <strong>${overallAvg}</strong>.<br>` +
+        `• <strong>Үздік көрсеткіш:</strong> ${highestClass.name} сыныбы (Орташа балл: <strong>${highestClass.avg}</strong>, Білім сапасы: <strong>${highestClass.quality}%</strong>).<br>` +
+        `• <strong>Төмен көрсеткіш:</strong> ${lowestClass.name} сыныбы (Орташа балл: <strong>${lowestClass.avg}</strong>, Білім сапасы: <strong>${lowestClass.quality}%</strong>).<br>` +
+        `• <strong>Ұсынылатын жұмыс:</strong> ${lowestClass.name} сыныбында бағдарламаның қиын бөлшектерін қайталау, түзету жұмыстарын ұйымдастыру талап етіледі.`;
+
+    document.getElementById('autoSummary').innerHTML = summaryText;
+
+    // Chart Update
+    if (myChart) myChart.destroy();
+    const ctx = document.getElementById('classChart').getContext('2d');
+    myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: chartLabels,
+            datasets: [
+                { label: 'Орташа балл', data: chartAvgs, backgroundColor: '#3498db' },
+                { label: 'Білім сапасы (%)', data: chartQualities, backgroundColor: '#2ecc71' }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, max: 100 } }
+        }
+    });
+}
+
+renderTable();
+</script>
+</body>
+</html>
